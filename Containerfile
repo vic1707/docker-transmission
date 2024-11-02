@@ -75,3 +75,9 @@ RUN cat /tmp/transmission-daemon/settings.json \
     | jq '. + { "watch-dir-enabled": false }' \
     | jq --sort-keys \
     | sponge /tmp/transmission-daemon/settings.json
+#########################################################################################################
+FROM scratch as SCRATCH_CLI
+
+COPY --from=BUILDER /root/transmission/build/cli/transmission-cli /
+
+ENTRYPOINT [ "/transmission-cli" ]
