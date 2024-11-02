@@ -81,3 +81,29 @@ FROM scratch as SCRATCH_CLI
 COPY --from=BUILDER /root/transmission/build/cli/transmission-cli /
 
 ENTRYPOINT [ "/transmission-cli" ]
+#########################################################################################################
+FROM alpine:3.20.3 AS ALPINE_DAEMON
+
+ARG TRANSMISSION_VERSION
+ENV TRANSMISSION_VERSION=$TRANSMISSION_VERSION
+
+RUN apk add --no-cache jq bash
+
+WORKDIR /etc/transmission
+
+# Get some staticaly builded bin helpers
+COPY --from=BUILDER /usr/bin/sponge /usr/bin
+
+# transmission-remote, transmission-create, transmission-edit and transmission-show
+COPY --from=BUILDER /root/transmission/build/utils/transmission-* /usr/bin
+# transmission-daemon
+COPY --from=BUILDER /root/transmission/build/daemon/transmission-daemon /usr/bin
+# default web ui
+COPY --from=BUILDER /root/transmission/web/public_html /usr/share/transmission/public_html
+
+## Get default settings.json
+COPY --from=BUILDER /tmp/transmission-daemon/settings.json ./default-settings.json
+
+COPY entrypoint.sh .
+
+ENTRYPOINT [ "/etc/transmission/entrypoint.sh" ]
