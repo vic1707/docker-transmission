@@ -3,6 +3,12 @@
 set -euo pipefail
 
 DEFAULT_SETTINGS_JSON="/etc/transmission/default-settings.json"
+SENSITIVE_SETTINGS=("rpc-password")
+
+## Some utility function
+err_exit() { echo "[ERROR] - $*" >&2 && exit 1; }
+string_contains() { case $1 in *$2*) return 0 ;; *) return 1 ;; esac }
+is_number() { case $1 in '' | *[!0-9]*) return 1 ;; *) return 0 ;; esac }
 
 if [ "${#}" -gt 0 ]; then
     for arg in "$@"; do
@@ -14,11 +20,58 @@ if [ "${#}" -gt 0 ]; then
                 exit 0
                 ;;
             *)
-                echo "Error: Unknown argument '$arg'" >&2
-                exit 1
+                err_exit "Error: Unknown argument '$arg'"
                 ;;
         esac
     done
 fi
+
+generate_jq_argument() {
+    settings_key="$1"
+    value="$2"
+
+    type=$(jq -r ".\"$settings_key\" | type" "$DEFAULT_SETTINGS_JSON")
+    case "$type" in
+        boolean)
+            if string_contains "true false" "$value"; then
+                echo "{ \"$settings_key\": $value }"
+                return
+            fi
+            ;;
+        number)
+            if is_number "$value"; then
+                echo "{ \"$settings_key\": $value }"
+                return
+            fi
+            ;;
+        string)
+            echo "{ \"$settings_key\": \"$value\" }"
+            return
+            ;;
+        *)
+            err_exit "Unsupported type '$type' for setting '$settings_key'."
+            ;;
+    esac
+
+    err_exit "Invalid value '$value' for '$settings_key' of type: '$type'."
+}
+
+custom_settings="{}"
+## Handle interpolation of provided variables with settings.json
+for settings_key in $(jq -r 'keys[]' "$DEFAULT_SETTINGS_JSON"); do
+    env=$(echo "$settings_key" | awk '{ gsub(/-/, "_"); print "TRANSMISSION_" toupper($0) }')
+
+    ## If no env variable of that name we skip
+    test -n "${!env+x}" || continue
+
+    value=$(printenv "$env")
+
+    custom_settings=$(echo "$custom_settings" | jq ". + $(generate_jq_argument "$settings_key" "$value")")
+
+    [[ " ${SENSITIVE_SETTINGS[*]} " =~ $settings_key ]] && value='[REDACTED]'
+    echo "[ENV] Set '$settings_key' to new value of '$value'."
+done
+
+jq ". + $custom_settings " $DEFAULT_SETTINGS_JSON | sponge $DEFAULT_SETTINGS_JSON
 
 transmission-daemon -f
