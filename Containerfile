@@ -91,9 +91,6 @@ RUN apk add --no-cache jq bash
 
 WORKDIR /etc/transmission
 
-# Get some staticaly builded bin helpers
-COPY --from=BUILDER /usr/bin/sponge /usr/bin
-
 # transmission-remote, transmission-create, transmission-edit and transmission-show
 COPY --from=BUILDER /root/transmission/build/utils/transmission-* /usr/bin
 # transmission-daemon
