@@ -5,6 +5,7 @@ set -euo pipefail
 DEFAULT_SETTINGS_JSON="/etc/transmission/default-settings.json"
 SENSITIVE_SETTINGS=("rpc-password")
 TRANSMISSION_HOME=${TRANSMISSION_HOME:-"/config"}
+TRANSMISSION_LOG_FILE=${TRANSMISSION_LOG_FILE:-"/dev/stdout"}
 SETTINGS_FILE="$TRANSMISSION_HOME/settings.json"
 
 mkdir -p "$TRANSMISSION_HOME"
@@ -82,4 +83,7 @@ if ! test -f "$SETTINGS_FILE"; then
     jq ". + $custom_settings " $DEFAULT_SETTINGS_JSON > "$SETTINGS_FILE"
 fi
 
-transmission-daemon -f --config-dir "$TRANSMISSION_HOME"
+transmission-daemon \
+    --foreground \
+    --config-dir "$TRANSMISSION_HOME" \
+    --logfile "$TRANSMISSION_LOG_FILE"
