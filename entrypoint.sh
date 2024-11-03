@@ -6,6 +6,7 @@ DEFAULT_SETTINGS_JSON="/etc/transmission/default-settings.json"
 SENSITIVE_SETTINGS=("rpc-password")
 TRANSMISSION_HOME=${TRANSMISSION_HOME:-"/config"}
 TRANSMISSION_LOG_FILE=${TRANSMISSION_LOG_FILE:-"/dev/stdout"}
+TRANSMISSION_LOG_LEVEL=${TRANSMISSION_LOG_LEVEL:-"info"}
 SETTINGS_FILE="$TRANSMISSION_HOME/settings.json"
 
 mkdir -p "$TRANSMISSION_HOME"
@@ -20,6 +21,7 @@ if [ "${#}" -gt 0 ]; then
         case "$arg" in
             -h | --help)
                 echo "Custom variables:"
+                echo "TRANSMISSION_LOG_LEVEL: 'critical', 'error', 'warn', 'info', 'debug' or 'trace' (default: info)."
                 echo "TRANSMISSION_HOME: sets where transmission's config lives (default: '/config')."
                 echo "Available Transmission environment variables:"
                 echo "[Documentation]: https://github.com/transmission/transmission/blob/${TRANSMISSION_VERSION}/docs/Editing-Configuration-Files.md#options"
@@ -31,6 +33,10 @@ if [ "${#}" -gt 0 ]; then
                 ;;
         esac
     done
+fi
+
+if ! string_contains "critical error warn info debug trace" "$TRANSMISSION_LOG_LEVEL"; then
+    err_exit "Invalid log-level, should be 'critical', 'error', 'warn', 'info', 'debug' or 'trace'."
 fi
 
 if ! test -f "$SETTINGS_FILE"; then
@@ -86,4 +92,5 @@ fi
 exec transmission-daemon \
     --foreground \
     --config-dir "$TRANSMISSION_HOME" \
-    --logfile "$TRANSMISSION_LOG_FILE"
+    --logfile "$TRANSMISSION_LOG_FILE" \
+    --log-level "$TRANSMISSION_LOG_LEVEL"
