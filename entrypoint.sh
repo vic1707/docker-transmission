@@ -83,7 +83,7 @@ if ! test -f "$SETTINGS_FILE"; then
     jq ". + $custom_settings " $DEFAULT_SETTINGS_JSON > "$SETTINGS_FILE"
 fi
 
-transmission-daemon \
+exec transmission-daemon \
     --foreground \
     --config-dir "$TRANSMISSION_HOME" \
     --logfile "$TRANSMISSION_LOG_FILE"
