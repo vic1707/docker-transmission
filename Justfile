@@ -45,12 +45,14 @@ build-cli:
     {{ CONTAINER_RUNTIME }} build --target SCRATCH_CLI \
         -t {{ IMAGE_NAME }}-cli:{{ IMAGE_TAG }} \
         -t {{ IMAGE_NAME }}-cli:{{ SPECIAL_TAG }} \
+        --build-arg JOBS={{ num_cpus() }} \
         --build-arg TRANSMISSION_VERSION={{ TRANSMISSION_VERSION }} .
 
 build-daemon:
     {{ CONTAINER_RUNTIME }} build --target ALPINE_DAEMON \
         -t {{ IMAGE_NAME }}-daemon:{{ IMAGE_TAG }} \
         -t {{ IMAGE_NAME }}-daemon:{{ SPECIAL_TAG }} \
+        --build-arg JOBS={{ num_cpus() }} \
         --build-arg TRANSMISSION_VERSION={{ TRANSMISSION_VERSION }} .
 
 clean:
