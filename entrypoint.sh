@@ -22,6 +22,8 @@ if [ "${#}" -gt 0 ]; then
             -h | --help)
                 echo "Custom variables:"
                 echo "TRANSMISSION_LOG_LEVEL: 'critical', 'error', 'warn', 'info', 'debug' or 'trace' (default: info)."
+                echo "TRANSMISSION_WEB_HOME: sets where transmission's custom web-ui lives (default if UI is set: '/etc/transmission/web')."
+                echo "TRANSMISSION_WEB_UI: optional - if set the container will download the selected ui to TRANSMISSION_WEB_HOME path. Options: 'combustion', 'kettu', 'transmission-web-control', 'flood', 'shift' or 'transmissionic'."
                 echo "TRANSMISSION_HOME: sets where transmission's config lives (default: '/config')."
                 echo "Available Transmission environment variables:"
                 echo "[Documentation]: https://github.com/transmission/transmission/blob/${TRANSMISSION_VERSION}/docs/Editing-Configuration-Files.md#options"
@@ -37,6 +39,56 @@ fi
 
 if ! string_contains "critical error warn info debug trace" "$TRANSMISSION_LOG_LEVEL"; then
     err_exit "Invalid log-level, should be 'critical', 'error', 'warn', 'info', 'debug' or 'trace'."
+fi
+
+if
+    test -n "${TRANSMISSION_WEB_UI+x}" \
+        && {
+            export TRANSMISSION_WEB_HOME=${TRANSMISSION_WEB_HOME:-"/etc/transmission/web"}
+            mkdir -p "$TRANSMISSION_WEB_HOME"
+            ! [ "$(ls -A "$TRANSMISSION_WEB_HOME")" ]
+        }
+then
+    case "$TRANSMISSION_WEB_UI" in
+        combustion)
+            echo "Installing combustion UI !"
+            wget -O- https://github.com/Secretmapper/combustion/archive/release.tar.gz \
+                | tar xz --strip-components=1 -C "$TRANSMISSION_WEB_HOME"
+            ;;
+        flood)
+            echo "Installing flood UI !"
+            wget -O- https://github.com/johman10/flood-for-transmission/releases/download/latest/flood-for-transmission.tar.gz \
+                | tar xz --strip-components=1 -C "$TRANSMISSION_WEB_HOME"
+            cp "$TRANSMISSION_WEB_HOME"/config.json.defaults "$TRANSMISSION_WEB_HOME"/config.json
+            ;;
+        kettu)
+            echo "Installing kettu UI !"
+            wget -O- https://github.com/endor/kettu/archive/master.tar.gz \
+                | tar xz --strip-components=1 -C "$TRANSMISSION_WEB_HOME"
+            cp "$TRANSMISSION_WEB_HOME"/config/locations.js.example "$TRANSMISSION_WEB_HOME"/config/locations.js
+            ;;
+        shift)
+            echo "Installing shift UI !"
+            wget -O- https://github.com/killemov/Shift/archive/master.tar.gz \
+                | tar xz --strip-components=1 -C "$TRANSMISSION_WEB_HOME"
+            ;;
+        transmissionic)
+            echo "Installing transmissionic UI !"
+            wget -O- https://github.com/6c65726f79/Transmissionic/releases/download/v1.8.0/Transmissionic-webui-v1.8.0.zip \
+                | unzip -q -d "$TRANSMISSION_WEB_HOME" -
+            mv "$TRANSMISSION_WEB_HOME/web"/* "$TRANSMISSION_WEB_HOME"
+            rmdir "$TRANSMISSION_WEB_HOME/web"
+            touch "$TRANSMISSION_WEB_HOME"/default.json
+            ;;
+        transmission-web-control)
+            echo "Installing transmission-web-control UI !"
+            wget -O- https://github.com/ronggang/transmission-web-control/archive/refs/heads/master.tar.gz \
+                | tar xz --strip-components=2 -C "$TRANSMISSION_WEB_HOME"
+            ;;
+        *)
+            err_exit "Unsupported ui name, should be 'combustion', 'kettu', 'transmission-web-control', 'flood', 'shift' or 'transmissionic'."
+            ;;
+    esac
 fi
 
 if ! test -f "$SETTINGS_FILE"; then
