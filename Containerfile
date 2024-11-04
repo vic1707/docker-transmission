@@ -75,6 +75,20 @@ RUN cat /tmp/transmission-daemon/settings.json \
     | jq '. + { "watch-dir-enabled": false }' \
     | jq --sort-keys \
     | sponge /tmp/transmission-daemon/settings.json
+
+## Custom default settings
+RUN cat /tmp/transmission-daemon/settings.json \
+    `# prevents login via port forwarding` \
+    | jq '. + { "rpc-whitelist-enabled": false }' \
+    | jq '. + { "download-dir": "/data/completed" }' \
+    | jq '. + { "incomplete-dir": "/data/incomplete" }' \
+    | jq '. + { "incomplete-dir-enabled": true }' \
+    | jq '. + { "watch-dir": "/data/watch" }' \
+    | jq '. + { "port-forwarding-enabled": false }' \
+    | jq '. + { "lpd-enabled": false }' \
+    | jq '. + { "rename-partial-files": true }' \
+    | jq --sort-keys \
+    | sponge /tmp/transmission-daemon/settings.json
 #########################################################################################################
 FROM scratch as SCRATCH_CLI
 
