@@ -3,6 +3,9 @@ FROM alpine:3.20.3 as BUILDER
 ARG TRANSMISSION_VERSION
 RUN test -n "$TRANSMISSION_VERSION"
 
+ARG JOBS=1
+RUN test $JOBS -ge 1 || { echo "JOBS should be a positive integer, got '$JOBS'"; exit 1; }
+
 RUN apk add git moreutils jq
 
 ## Get transmission release
@@ -61,7 +64,7 @@ RUN cmake \
     -DWITH_KQUEUE=OFF \
     -DWITH_SYSTEMD=OFF
 
-RUN cmake --build build
+RUN cmake --build build -- -j${JOBS}
 
 ## To generate the default settings.json used by the daemon
 RUN timeout 1s build/daemon/transmission-daemon -f --config-dir /tmp/transmission-daemon
