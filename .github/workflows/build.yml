@@ -1,0 +1,92 @@
+name: build
+
+on:
+    workflow_dispatch:
+        inputs:
+            version:
+                description: Transmission release version
+                required: true
+                default: main
+            publish:
+                description: Should the images be published
+                required: true
+                default: "false"
+
+env:
+    TRANSMISSION_VERSION: ${{ inputs.version }}
+    PLATFORMS: linux/386, linux/amd64, linux/arm/v6, linux/arm/v7, linux/arm64/v8, linux/ppc64le, linux/riscv64
+    # placeholders to avoid vscode extension warnings
+    TAGS: __
+
+jobs:
+    build:
+        name: "Build transmission@${{ inputs.version }}"
+        runs-on: ubuntu-latest
+        permissions:
+            packages: write
+            contents: read
+        steps:
+            - uses: actions/checkout@v4.2.2
+
+            - name: Install Just
+              uses: extractions/setup-just@v2
+
+            - name: Get Image tags
+              run: echo "TAGS=$(just get-tags)" >> $GITHUB_ENV
+
+            - name: Install QEMU
+              run: |
+                sudo apt update 
+                sudo apt install -y qemu-user-static
+
+            - name: Build transmission-cli
+              uses: redhat-actions/buildah-build@v2.13
+              with:
+                image: transmission-cli
+                tags: ${{ env.TAGS }}
+                oci: false # use docker format instead (supports SHELL and HEALTHCHECK)
+                layers: true
+                platforms: ${{ env.PLATFORMS }}
+                containerfiles: |
+                    ./Containerfile
+                extra-args: |
+                    --target=SCRATCH_CLI
+                build-args: |
+                    TRANSMISSION_VERSION=${{ inputs.version }}
+                    JOBS=4
+
+            - name: Build transmission-daemon
+              uses: redhat-actions/buildah-build@v2.13
+              with:
+                image: transmission-daemon
+                tags: ${{ env.TAGS }}
+                oci: false # use docker format instead (supports SHELL and HEALTHCHECK)
+                layers: true
+                platforms: ${{ env.PLATFORMS }}
+                containerfiles: |
+                    ./Containerfile
+                extra-args: |
+                    --target=ALPINE_DAEMON
+                build-args: |
+                    TRANSMISSION_VERSION=${{ inputs.version }}
+                    JOBS=4
+
+            - name: Publish transmission-cli
+              if: ${{ inputs.publish == 'true' }}
+              uses: redhat-actions/push-to-registry@v2.8
+              with:
+                image: transmission-cli
+                tags: ${{ env.TAGS }}
+                registry: ghcr.io/${{ github.repository_owner }}
+                username: ${{ github.actor }}
+                password: ${{ github.TOKEN }}
+
+            - name: Publish transmission-daemon
+              if: ${{ inputs.publish == 'true' }}
+              uses: redhat-actions/push-to-registry@v2.8
+              with:
+                image: transmission-daemon
+                tags: ${{ env.TAGS }}
+                registry: ghcr.io/${{ github.repository_owner }}
+                username: ${{ github.actor }}
+                password: ${{ github.TOKEN }}
