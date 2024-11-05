@@ -1,4 +1,5 @@
 #### ENV ####
+ARCH := env_var_or_default("ARCH", arch())
 TRANSMISSION_VERSION := env("TRANSMISSION_VERSION")
 ## Waiting for https://github.com/casey/just/pull/2440 to get a cleaner conditonal
 CONTAINER_RUNTIME := env_var_or_default(
@@ -13,6 +14,7 @@ GITHUB_TAGS_API := "https://api.github.com/repos/transmission/transmission/git/r
 GITHUB_BRANCHES_API := "https://api.github.com/repos/transmission/transmission/branches"
 GITHUB_COMMITS_API := "https://api.github.com/repos/transmission/transmission/commits"
 IMAGE_NAME := "transmission"
+PLATFORM := 'linux/' + ARCH
 ## Yup, that's disgusting
 SPECIAL_TAG := (
     if TRANSMISSION_VERSION == 'main' {
@@ -45,6 +47,7 @@ build-cli:
     {{ CONTAINER_RUNTIME }} build --target SCRATCH_CLI \
         -t {{ IMAGE_NAME }}-cli:{{ IMAGE_TAG }} \
         -t {{ IMAGE_NAME }}-cli:{{ SPECIAL_TAG }} \
+        --platform {{ PLATFORM }} \
         --build-arg JOBS={{ num_cpus() }} \
         --build-arg TRANSMISSION_VERSION={{ TRANSMISSION_VERSION }} .
 
@@ -52,6 +55,7 @@ build-daemon:
     {{ CONTAINER_RUNTIME }} build --target ALPINE_DAEMON \
         -t {{ IMAGE_NAME }}-daemon:{{ IMAGE_TAG }} \
         -t {{ IMAGE_NAME }}-daemon:{{ SPECIAL_TAG }} \
+        --platform {{ PLATFORM }} \
         --build-arg JOBS={{ num_cpus() }} \
         --build-arg TRANSMISSION_VERSION={{ TRANSMISSION_VERSION }} .
 
