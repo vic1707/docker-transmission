@@ -10,6 +10,7 @@ TRANSMISSION_HOME=${TRANSMISSION_HOME:-"/config"}
 TRANSMISSION_LOG_FILE=${TRANSMISSION_LOG_FILE:-"/dev/stdout"}
 TRANSMISSION_LOG_LEVEL=${TRANSMISSION_LOG_LEVEL:-"info"}
 SETTINGS_FILE="$TRANSMISSION_HOME/settings.json"
+FORCE_SET_SETTINGS=false
 # Define the sensitive keys as a space-separated string
 SENSITIVE_SETTINGS="rpc-password"
 
@@ -25,6 +26,7 @@ if [ "${#}" -gt 0 ]; then
         case "$arg" in
             -h | --help)
                 echo "To see current config: '--show-config'."
+                echo "To enforce resetting settings from defaults: '--force-set-settings'."
                 echo "Custom variables:"
                 echo "TRANSMISSION_LOG_LEVEL: 'critical', 'error', 'warn', 'info', 'debug' or 'trace' (default: info)."
                 echo "TRANSMISSION_WEB_HOME: sets where transmission's custom web-ui lives (default if UI is set: '/etc/transmission/web')."
@@ -42,6 +44,9 @@ if [ "${#}" -gt 0 ]; then
                     jq < "$DEFAULT_SETTINGS_JSON"
                 fi
                 exit 0
+                ;;
+            --force-set-settings)
+                FORCE_SET_SETTINGS=true
                 ;;
             *)
                 err_exit "Error: Unknown argument '$arg'"
@@ -104,7 +109,7 @@ then
     esac
 fi
 
-if ! test -f "$SETTINGS_FILE"; then
+if ! test -f "$SETTINGS_FILE" || $FORCE_SET_SETTINGS; then
     generate_jq_argument() {
         settings_key="$1"
         value="$2"
