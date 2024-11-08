@@ -20,6 +20,7 @@ if [ "${#}" -gt 0 ]; then
     for arg in "$@"; do
         case "$arg" in
             -h | --help)
+                echo "To see current config: '--show-config'."
                 echo "Custom variables:"
                 echo "TRANSMISSION_LOG_LEVEL: 'critical', 'error', 'warn', 'info', 'debug' or 'trace' (default: info)."
                 echo "TRANSMISSION_WEB_HOME: sets where transmission's custom web-ui lives (default if UI is set: '/etc/transmission/web')."
@@ -27,7 +28,15 @@ if [ "${#}" -gt 0 ]; then
                 echo "TRANSMISSION_HOME: sets where transmission's config lives (default: '/config')."
                 echo "Available Transmission environment variables:"
                 echo "[Documentation]: https://github.com/transmission/transmission/blob/${TRANSMISSION_VERSION}/docs/Editing-Configuration-Files.md#options"
-                jq -r 'keys[]' "$DEFAULT_SETTINGS_JSON" | awk '{ gsub(/-/, "_"); print "TRANSMISSION_" toupper($0) }'
+                jq -r '[keys[]] | join(" ")' "$DEFAULT_SETTINGS_JSON" | awk '{ gsub(/-/, "_"); print "TRANSMISSION_" toupper($0) }'
+                exit 0
+                ;;
+            --show-config)
+                if test -f "$SETTINGS_FILE"; then
+                    jq < "$SETTINGS_FILE"
+                else
+                    jq < "$DEFAULT_SETTINGS_JSON"
+                fi
                 exit 0
                 ;;
             *)
