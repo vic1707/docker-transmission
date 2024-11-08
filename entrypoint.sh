@@ -1,13 +1,17 @@
-#!/bin/bash
+#!/bin/sh
 
-set -euo pipefail
+set \
+    -o errexit \
+    -o notify \
+    -o nounset
 
 DEFAULT_SETTINGS_JSON="/etc/transmission/default-settings.json"
-SENSITIVE_SETTINGS=("rpc-password")
 TRANSMISSION_HOME=${TRANSMISSION_HOME:-"/config"}
 TRANSMISSION_LOG_FILE=${TRANSMISSION_LOG_FILE:-"/dev/stdout"}
 TRANSMISSION_LOG_LEVEL=${TRANSMISSION_LOG_LEVEL:-"info"}
 SETTINGS_FILE="$TRANSMISSION_HOME/settings.json"
+# Define the sensitive keys as a space-separated string
+SENSITIVE_SETTINGS="rpc-password"
 
 mkdir -p "$TRANSMISSION_HOME"
 
@@ -53,7 +57,7 @@ fi
 if
     test -n "${TRANSMISSION_WEB_UI+x}" \
         && {
-            export TRANSMISSION_WEB_HOME=${TRANSMISSION_WEB_HOME:-"/etc/transmission/web"}
+            export TRANSMISSION_WEB_HOME="${TRANSMISSION_WEB_HOME:-"/etc/transmission/web"}"
             mkdir -p "$TRANSMISSION_WEB_HOME"
             ! [ "$(ls -A "$TRANSMISSION_WEB_HOME")" ]
         }
@@ -137,13 +141,16 @@ if ! test -f "$SETTINGS_FILE"; then
         env=$(echo "$settings_key" | awk '{ gsub(/-/, "_"); print "TRANSMISSION_" toupper($0) }')
 
         ## If no env variable of that name we skip
-        test -n "${!env+x}" || continue
+        printenv "$env" > /dev/null 2>&1 || continue
 
         value=$(printenv "$env")
 
         custom_settings=$(echo "$custom_settings" | jq ". + $(generate_jq_argument "$settings_key" "$value")")
 
-        [[ " ${SENSITIVE_SETTINGS[*]} " =~ $settings_key ]] && value='[REDACTED]'
+        if string_contains "$SENSITIVE_SETTINGS" "$settings_key"; then
+            value='[REDACTED]'
+        fi
+
         echo "[ENV] Set '$settings_key' to new value of '$value'."
     done
 

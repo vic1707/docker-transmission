@@ -104,7 +104,7 @@ FROM alpine:3.20.3 AS ALPINE_DAEMON
 ARG TRANSMISSION_VERSION
 ENV TRANSMISSION_VERSION=$TRANSMISSION_VERSION
 
-RUN apk add --no-cache jq bash
+RUN apk add --no-cache jq
 
 WORKDIR /etc/transmission
 
