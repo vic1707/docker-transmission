@@ -1,0 +1,3 @@
+ignored:
+  - DL3059 # RUN command consolidation
+  - DL3018 # pin apk versions

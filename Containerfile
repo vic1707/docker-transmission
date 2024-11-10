@@ -6,7 +6,9 @@ RUN test -n "$TRANSMISSION_VERSION"
 ARG JOBS=1
 RUN test $JOBS -ge 1 || { echo "JOBS should be a positive integer, got '$JOBS'"; exit 1; }
 
-RUN apk add git moreutils jq
+SHELL ["/bin/ash", "-eo", "pipefail", "-c"]
+
+RUN apk add --no-cache git moreutils jq
 
 ## Get transmission release
 RUN git clone \
@@ -17,7 +19,7 @@ RUN git clone \
 RUN git -C /root/transmission submodule update --init --recursive
 
 ## Build dependencies
-RUN apk add \
+RUN apk add --no-cache \
     `# Build tools` \
     cmake make g++ python3 \
     `# build dependencies` \
@@ -71,7 +73,7 @@ RUN timeout 1s build/daemon/transmission-daemon -f --config-dir /tmp/transmissio
 
 ## Add missing keys with defaults for versions <=4.0.6
 ## see: https://github.com/transmission/transmission/issues/7212
-RUN cat /tmp/transmission-daemon/settings.json \
+RUN jq < /tmp/transmission-daemon/settings.json \
     | jq '. + { "lazy-bitfield-enabled": "utp" }' \
     | jq '. + { "pidfile": "" }' \
     | jq '. + { "watch-dir": "/root/Downloads" }' \
@@ -100,6 +102,13 @@ COPY --from=BUILDER /root/transmission/build/cli/transmission-cli /
 ENTRYPOINT [ "/transmission-cli" ]
 #########################################################################################################
 FROM alpine:3.20.3 AS ALPINE_DAEMON
+
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 \
+    CMD (ping -c 1 google.com >/dev/null 2>&1 || { echo "Network is down."; exit 1; }) \
+        && (wget --spider --server-response "http://127.0.0.1:${TRANSMISSION_RPC_PORT:-9091}/transmission/web/" 2>&1 \
+                | awk '/^  HTTP/{print $2}' | grep -q "200" \
+            || { echo "Cannot access the transmission web-ui."; exit 1; }) \
+        && { echo "Network OK, http://127.0.0.1:${TRANSMISSION_RPC_PORT:-9091}/transmission/web/ is accessible."; exit 0; }
 
 ARG TRANSMISSION_VERSION
 ENV TRANSMISSION_VERSION=$TRANSMISSION_VERSION

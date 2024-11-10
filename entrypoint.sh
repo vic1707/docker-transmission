@@ -29,7 +29,7 @@ if [ "${#}" -gt 0 ]; then
                 echo "To enforce resetting settings from defaults: '--force-set-settings'."
                 echo "Custom variables:"
                 echo "TRANSMISSION_LOG_LEVEL: 'critical', 'error', 'warn', 'info', 'debug' or 'trace' (default: info)."
-                echo "TRANSMISSION_WEB_HOME: sets where transmission's custom web-ui lives (default if UI is set: '/etc/transmission/web')."
+                echo "TRANSMISSION_WEB_HOME: sets where transmission's custom web-ui lives (default if UI is set: '/tmp/web-ui')."
                 echo "TRANSMISSION_WEB_UI: optional - if set the container will download the selected ui to TRANSMISSION_WEB_HOME path. Options: 'combustion', 'kettu', 'transmission-web-control', 'flood', 'shift' or 'transmissionic'."
                 echo "TRANSMISSION_HOME: sets where transmission's config lives (default: '/config')."
                 echo "Available Transmission environment variables:"
@@ -62,7 +62,7 @@ fi
 if
     test -n "${TRANSMISSION_WEB_UI+x}" \
         && {
-            export TRANSMISSION_WEB_HOME="${TRANSMISSION_WEB_HOME:-"/etc/transmission/web"}"
+            export TRANSMISSION_WEB_HOME="${TRANSMISSION_WEB_HOME:-"/tmp/web-ui"}"
             mkdir -p "$TRANSMISSION_WEB_HOME"
             ! [ "$(ls -A "$TRANSMISSION_WEB_HOME")" ]
         }

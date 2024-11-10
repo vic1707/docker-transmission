@@ -1,0 +1,26 @@
+# Built using `podman compose --podman-build-args='--format docker' up`
+services:
+    transmission:
+        container_name: transmission
+        image: transmission
+        build:
+            context: .
+            target: ALPINE_DAEMON
+            dockerfile: Containerfile
+            args:
+                TRANSMISSION_VERSION: 4.0.6
+                JOBS: 4
+        read_only: true
+        cap_drop:
+            - all
+        security_opt:
+            - no-new-privileges
+        environment:
+            TRANSMISSION_WEB_UI: flood
+        tmpfs:
+            - /tmp/web-ui
+            - /config
+        volumes:
+            - ./downloads:/data:rw
+        ports:
+            - 9091:9091

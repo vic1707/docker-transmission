@@ -52,7 +52,7 @@ Custom UIs can be installed by setting `TRANSMISSION_WEB_UI` to
 Other available env variables are:
 
 - `TRANSMISSION_LOG_LEVEL`: 'critical', 'error', 'warn', 'info', 'debug' or 'trace' (default: info).
-- `TRANSMISSION_WEB_HOME`: sets where transmission's custom web-ui lives (default if UI is set: '/etc/transmission/web').
+- `TRANSMISSION_WEB_HOME`: sets where transmission's custom web-ui lives (default if UI is set: '/tmp/web-ui').
 - `TRANSMISSION_HOME`: sets where transmission's config lives (default: '/config').
 
 The default configuration can be seen by running the container with the `--show-config` flag:
@@ -72,6 +72,41 @@ Output folder for torrents files are under `/data`.
 
 - `9091`: Web interface port for `transmission-daemon` (can be overwritten by `TRANSMISSION_RPC_PORT`)
 - `51413`: Transmission peer port (can be overwritten by `TRANSMISSION_PEER_PORT`), portforwarding is disabled by default.
+
+### Security (daemon)
+
+The container can be run in readonly mode if you don't set a custom web-ui, else you'll need to add `--tmpfs /tmp/web-ui` so the daemon can download and extract the custom ui.
+During testing it looked like the container can be run with `--cap-drop all`, I don't know if all torrents will be fine with this setting so use with caution (and please report if you encountered an issue!).
+
+For context, I was able to run the container successfuly with the following compose:
+
+```yaml
+services:
+    transmission:
+        container_name: transmission
+        image: transmission
+        build:
+            context: .
+            target: ALPINE_DAEMON
+            dockerfile: Containerfile
+            args:
+                TRANSMISSION_VERSION: 4.0.6
+                JOBS: 4
+        read_only: true
+        cap_drop:
+            - all
+        security_opt:
+            - no-new-privileges
+        environment:
+            TRANSMISSION_WEB_UI: flood
+        tmpfs:
+            - /tmp/web-ui
+            - /config
+        volumes:
+            - ./downloads:/data:rw
+        ports:
+            - 9091:9091
+```
 
 ### Troubleshooting
 
